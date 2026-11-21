@@ -545,6 +545,7 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
   const openButton = toolbar.querySelector('.open-file-button');
   const openInput = toolbar.querySelector('.open-file-input');
   const suggestedName = 'プルガトリウムの夜_一日目_作業用.html';
+  const readerSuggestedName = 'purgatorium-day1-transcript-reader.html';
   const htmlFileTypes = [{ description: '文字起こしの作業ファイル', accept: { 'text/html': ['.html', '.htm'] } }];
   const baseVoices = new Map([['unknown', '話者不明'], ['sound', '効果音・反応'], ['dice', 'ダイスロール結果']]);
   const defaultVoices = new Map([
@@ -563,6 +564,8 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
     ['', '未分類'],
     ['player', 'PL名発言'],
   ]);
+  const exportButton = button('export-reader-button', '閲覧用HTMLを書き出す');
+  toolbar.querySelector('.file-actions').append(exportButton);
   const sourceLink = document.querySelector('.source').href;
   const storageKey = document.body.dataset.transcriptKey;
   const rememberRecent = document.body.hasAttribute('data-remember-recent');
@@ -1350,11 +1353,124 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
     text.setSelectionRange(caret, caret);
   }
 
-  function createFileBlob() {
+  const readerStyles = ":root {\n  color-scheme: light;\n  --paper: #f7f5ef;\n  --card: #fffdf8;\n  --ink: #252a25;\n  --muted: #515952;\n  --accent: #25604c;\n  --accent-soft: #e8f0e8;\n  --line: #d7ddd3;\n  font-family: \"Atkinson Hyperlegible Next\", \"Yu Gothic UI\", \"Hiragino Kaku Gothic ProN\", Meiryo, sans-serif;\n  line-height: 1.85;\n}\n* { box-sizing: border-box; }\n[hidden] { display: none !important; }\nbody { margin: 0; background: var(--paper); color: var(--ink); }\na { color: var(--accent); text-underline-offset: .22em; }\na:hover { text-decoration-thickness: .12em; }\na:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }\ntime { font-variant-numeric: tabular-nums; white-space: nowrap; }\n.reader-nav { position: sticky; top: 0; z-index: 3; background: var(--card); border-bottom: 1px solid var(--line); }\n.reader-nav-inner { display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; width: min(100% - 2.5rem, 55rem); margin-inline: auto; padding-block: .65rem; }\n.reader-nav a { font-size: .9rem; font-weight: 600; }\n.page { width: min(100% - 2.5rem, 55rem); margin-inline: auto; }\n.hero { padding-block: clamp(2.4rem, 6vw, 4.75rem) 2rem; }\n.type { margin: 0 0 .45rem; color: var(--accent); font-size: .9rem; font-weight: 700; }\nh1, h2 { line-height: 1.35; }\nh1 { margin: 0; font-size: clamp(1.65rem, 4.5vw, 2.85rem); }\n.credits { margin: .7rem 0 .25rem; color: var(--muted); }\n.source { display: inline-block; font-weight: 600; }\n.contents { padding: clamp(1rem, 4vw, 1.6rem); border: 1px solid var(--line); border-radius: .65rem; background: var(--card); }\n.contents h2 { margin: 0 0 .55rem; font-size: 1.2rem; }\n.contents ol, .cues { padding: 0; margin: 0; list-style: none; }\n.contents ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }\n.contents a { display: grid; grid-template-columns: 4.1em minmax(0, 1fr); gap: .45em; padding: .32rem .25rem; color: var(--ink); text-decoration: none; }\n.contents a:hover { background: var(--accent-soft); text-decoration: underline; }\n.contents time { color: var(--accent); font-weight: 650; }\n.note { margin: 1.15rem 0 1.8rem; color: var(--muted); font-size: .92rem; }\n.chapter { margin-block: 0 2.2rem; }\n.chapter, .speech-row, #contents { scroll-margin-block-start: 4rem; }\n.chapter h2 { display: flex; align-items: baseline; gap: .7rem; margin: 0; padding: .8rem .75rem; border-block: 1px solid var(--line); background: var(--accent-soft); font-size: clamp(1.05rem, 3vw, 1.4rem); }\n.chapter-time { flex: 0 0 auto; font-size: .8em; }\n.cues li { display: grid; grid-template-columns: 4.3em minmax(0, 1fr); gap: .55em; padding: .65rem .75rem; border-bottom: 1px solid var(--line); align-items: baseline; }\n.cue-time { font-size: .89em; }\n.turns { display: grid; gap: .25rem; min-width: 0; }\n.turn { display: grid; grid-template-columns: 8.15rem minmax(0, 1fr); column-gap: .65rem; align-items: baseline; }\n.caption { white-space: pre-wrap; overflow-wrap: anywhere; }\n.sound { color: var(--muted); }\n.voice-label { width: fit-content; font-size: .78rem; line-height: 1.4; padding: .1rem .35rem; border-radius: .2rem; color: #454943; background: #ecebe5; overflow-wrap: anywhere; }\n.voice-label[style*=\"--voice-color\"] { color: var(--ink); background: color-mix(in srgb, var(--voice-color) 70%, white); border-inline-start: 3px solid var(--voice-color); }\n[data-voice=\"sound\"] .voice-label { background: transparent; color: var(--muted); }\n.cues .speech-row[data-kind=\"player\"] { margin-inline-start: clamp(.6rem, 3vw, 1.6rem); padding-inline-start: .75rem; border-inline-start: 2px solid #c3c5c2; }\n.cues .dice-row { border-inline-start: 3px solid #9e7429; background: #faf1dc; }\n.dice-row .voice-label { color: #63450f; background: #f2dfad; font-weight: 700; }\n.speaker-controls { display: grid; gap: .4rem; margin: 0 0 1.6rem; }\n.speaker-filter-group { display: grid; grid-template-columns: 7.1rem minmax(0, 1fr); align-items: baseline; gap: .4rem; }\n.speaker-filter-label { color: var(--muted); font-size: .85rem; font-weight: 650; }\n.speaker-filter-buttons { display: flex; flex-wrap: wrap; gap: .4rem; }\n.speaker-controls button { font: inherit; font-size: .86rem; color: var(--ink); border: 1px solid var(--line); border-radius: .35rem; padding: .15rem .55rem; background: var(--card); cursor: pointer; }\n.speaker-controls button[style*=\"--voice-color\"]:not([aria-pressed=\"true\"]) { background: color-mix(in srgb, var(--voice-color) 65%, white); border-block-end: 3px solid var(--voice-color); }\n.speaker-controls button[aria-pressed=\"true\"] { color: white; background: var(--accent); border-color: var(--accent); }\n.filter-count { color: var(--muted); font-size: .85rem; }\n.back { margin-block: 0 2rem; }\n@media (max-width: 42rem) { .contents ol { grid-template-columns: 1fr; } }\n@media (max-width: 36rem) { .turn { grid-template-columns: 1fr; row-gap: .2rem; } }\n@media (max-width: 32rem) { .speaker-filter-group { grid-template-columns: 1fr; gap: .15rem; } }\n@media (max-width: 28rem) {\n  .page, .reader-nav-inner { width: calc(100% - 1.5rem); }\n  .cues li { padding-inline: .45rem; grid-template-columns: 3.8em minmax(0, 1fr); gap: .45em; }\n}\n@media print {\n  :root { --paper: white; --card: white; }\n  .page { width: 100%; }\n  .hero { padding-block: 0 1rem; }\n  .reader-nav, .speaker-controls, .back { display: none; }\n  .chapter h2 { break-after: avoid; }\n  .cues li { break-inside: avoid; }\n}\n";
+
+  function initializeReader() {
+    const controls = document.querySelector('.speaker-controls');
+    const count = controls.querySelector('.filter-count');
+    const sections = [...document.querySelectorAll('.chapter')].map((section) => ({
+      section,
+      rows: [...section.querySelectorAll('.speech-row')],
+      contentsItem: document.querySelector('a[href="#' + section.id + '"]').closest('li'),
+    }));
+
+    function applyFilter(selected) {
+      let visible = 0;
+      for (const button of controls.querySelectorAll('[data-filter]')) {
+        button.setAttribute('aria-pressed', String(button.dataset.filter === selected));
+      }
+      for (const { section, rows, contentsItem } of sections) {
+        let sectionVisible = 0;
+        for (const row of rows) {
+          row.hidden = selected !== 'all' && row.querySelector('.turn').dataset.voice !== selected;
+          if (!row.hidden) sectionVisible++;
+        }
+        section.hidden = selected !== 'all' && sectionVisible === 0;
+        contentsItem.hidden = section.hidden;
+        visible += sectionVisible;
+      }
+      count.textContent = selected === 'all' ? '' : visible.toLocaleString('ja-JP') + ' 件';
+    }
+
+    controls.hidden = false;
+    controls.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-filter]');
+      if (button) applyFilter(button.dataset.filter);
+    });
+    applyFilter('all');
+  }
+
+  function createReaderFileBlob() {
+    const copy = createDocumentCopy();
+    for (const element of copy.querySelectorAll('script, style, .editor-bar, .editor-help')) element.remove();
+    const body = copy.querySelector('body');
+    body.removeAttribute('data-remember-recent');
+    body.classList.add('reader-page');
+    copy.querySelector('title').textContent = copy.querySelector('h1').textContent + '｜文字起こし';
+    copy.querySelector('.type').textContent = '話者別の文字起こし';
+    copy.querySelector('.note').textContent = copy.querySelector('.note').textContent
+      .replaceAll('編集用の文字起こし', '文字起こし');
+    copy.querySelector('.speaker-controls').hidden = false;
+    for (const row of copy.querySelectorAll('.speech-row')) row.removeAttribute('data-entry');
+    for (const caption of copy.querySelectorAll('.caption, .voice-label')) caption.removeAttribute('contenteditable');
+    for (const link of copy.querySelectorAll('.source, .chapter-time, .cue-time')) {
+      link.target = '_blank';
+      link.rel = 'noopener';
+    }
+    const navigation = node('nav', 'reader-nav');
+    navigation.setAttribute('aria-label', 'ページの移動');
+    const links = node('div', 'reader-nav-inner');
+    const indexLink = node('a', '', '全体の目次');
+    indexLink.setAttribute('href', 'index.html');
+    const contentsLink = node('a', '', 'この日の目次');
+    contentsLink.setAttribute('href', '#contents');
+    links.append(indexLink, contentsLink);
+    navigation.append(links);
+    body.prepend(navigation);
+    const style = node('style', '', readerStyles);
+    copy.querySelector('head').append(style);
+    const script = node('script', '', '(' + initializeReader.toString() + ')();');
+    body.append(script);
+    return new Blob(['<!doctype html>\n', copy.outerHTML], { type: 'text/html;charset=utf-8' });
+  }
+
+  async function writeFileBlob(target, blob) {
+    const writable = await target.createWritable();
+    try {
+      await writable.write(blob);
+      await writable.close();
+    } catch (error) {
+      await writable.abort().catch(() => {});
+      throw error;
+    }
+  }
+
+  async function exportReader() {
+    if (busy) return;
+    setFileBusy(true);
+    status.textContent = '閲覧用HTMLの保存先を確認しています…';
+    try {
+      let target;
+      if (typeof window.showSaveFilePicker === 'function') {
+        try {
+          target = await window.showSaveFilePicker({ suggestedName: readerSuggestedName, types: htmlFileTypes });
+        } catch (error) {
+          if (!pickerUnavailable(error)) throw error;
+        }
+      }
+      const blob = createReaderFileBlob();
+      if (!target) {
+        downloadFile(blob, readerSuggestedName);
+        status.textContent = '閲覧用HTMLのダウンロードを開始しました。';
+        return;
+      }
+      await writeFileBlob(target, blob);
+      status.textContent = target.name + ' に閲覧用HTMLを書き出しました。';
+    } catch (error) {
+      status.textContent = error?.name === 'AbortError' ? '閲覧用HTMLの書き出しをキャンセルしました。' :
+        '閲覧用HTMLを書き出せませんでした。保存先を確認して、もう一度お試しください。';
+    } finally {
+      setFileBusy(false);
+    }
+  }
+
+
+  function createDocumentCopy() {
     closeEditor();
     const copy = document.documentElement.cloneNode(true);
     copy.querySelector('.names-dialog').remove();
     copy.querySelector('.names-button').remove();
+    copy.querySelector('.export-reader-button').remove();
     copy.querySelector('.speaker-controls').dataset.roster = JSON.stringify([...voices]
       .filter(([key]) => !baseVoices.has(key)).map(([key, name]) => [key, name, voiceColors.get(key)]));
     delete copy.querySelector('body').dataset.transcriptKey;
@@ -1377,14 +1493,19 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
       caption.removeAttribute('title');
     }
     for (const actions of copy.querySelectorAll('.row-actions')) actions.remove();
+    return copy;
+  }
+
+  function createFileBlob() {
+    const copy = createDocumentCopy();
     return new Blob(['<!doctype html>\n', copy.outerHTML], { type: 'text/html;charset=utf-8' });
   }
 
-  function downloadFile(blob) {
+  function downloadFile(blob, filename = suggestedName) {
     const url = URL.createObjectURL(blob);
     const link = node('a');
     link.href = url;
-    link.download = suggestedName;
+    link.download = filename;
     document.body.append(link);
     link.click();
     link.remove();
@@ -1396,6 +1517,7 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
     openButton.disabled = value;
     saveButton.disabled = value;
     saveAsButton.disabled = value;
+    exportButton.disabled = value;
     saveAsButton.hidden = !workingFile;
     saveButton.textContent = workingFile ? '上書き保存' : 'ファイルに保存';
   }
@@ -1493,14 +1615,7 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
         return;
       }
       status.textContent = 'ファイルに保存しています…';
-      const writable = await target.createWritable();
-      try {
-        await writable.write(blob);
-        await writable.close();
-      } catch (error) {
-        await writable.abort().catch(() => {});
-        throw error;
-      }
+      await writeFileBlob(target, blob);
       workingFile = target;
       savedRevision = writtenRevision;
       status.textContent = target.name + (savedRevision === revision ? ' に保存しました。' : ' に保存しました。保存後の変更があります。');
@@ -1619,6 +1734,7 @@ HO2も振るか。</span></div></div></li><li class="speech-row dice-row" data-e
   undoButton.addEventListener('click', () => changeHistory(true));
   redoButton.addEventListener('click', () => changeHistory(false));
   saveButton.addEventListener('click', () => saveFile());
+  exportButton.addEventListener('click', exportReader);
   saveAsButton.addEventListener('click', () => saveFile(true));
   openButton.addEventListener('click', openFile);
   openInput.addEventListener('change', async () => {
